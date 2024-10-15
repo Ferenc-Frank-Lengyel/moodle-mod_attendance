@@ -207,7 +207,7 @@ function attendance_get_user_sessions_log_full($userid, $pageparams) {
 function attendance_get_user_courses_attendances($userid) {
     global $DB;
 
-    $usercourses = enrol_get_users_courses($userid);
+    $usercourses = enrol_get_users_courses($userid, true);
 
     list($usql, $uparams) = $DB->get_in_or_equal(array_keys($usercourses), SQL_PARAMS_NAMED, 'cid0');
 
