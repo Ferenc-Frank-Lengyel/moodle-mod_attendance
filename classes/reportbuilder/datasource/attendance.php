@@ -21,6 +21,7 @@ namespace mod_attendance\reportbuilder\datasource;
 use core_reportbuilder\datasource;
 use core_reportbuilder\local\entities\course;
 use core_course\reportbuilder\local\entities\course_category;
+use core_group\reportbuilder\local\entities\group;
 use core_reportbuilder\local\entities\user;
 use core_reportbuilder\local\helpers\database;
 
@@ -66,10 +67,10 @@ class attendance extends datasource {
         $this->add_entity($userentity->add_join($userjoin));
 
         // Join the course entity.
-        $coursentity = new course();
-        $coursealias = $coursentity->get_table_alias('course');
+        $courseentity = new course();
+        $coursealias = $courseentity->get_table_alias('course');
         $coursejoin = "JOIN {course} {$coursealias} ON {$coursealias}.id = {$attendancealias}.course";
-        $this->add_entity($coursentity->add_join($coursejoin));
+        $this->add_entity($courseentity->add_join($coursejoin));
 
         // Join the course category entity.
         $coursecatentity = new course_category();
@@ -77,6 +78,27 @@ class attendance extends datasource {
         $this->add_entity($coursecatentity
             ->add_join("JOIN {course_categories} {$coursecattablealias}
                 ON {$coursecattablealias}.id = {$coursealias}.category"));
+
+        // Join group entity.
+        $context = $courseentity->get_table_alias('context');
+        $attendancesessionalias = $attendanceentity->get_table_alias('attendance_sessions');
+        $groupentity = (new group())
+            ->set_table_alias('context', $context);
+        $groups = $groupentity->get_table_alias('groups');
+
+        // Sub-select for all course group members.
+        $groupsinnerselect = "
+            SELECT grs.*, grms.userid
+              FROM {groups} grs
+              JOIN {groups_members} grms ON grms.groupid = grs.id";
+
+        $this->add_entity($groupentity
+            ->add_join($courseentity->get_context_join())
+            ->add_joins($userentity->get_joins())
+            ->add_join("
+                LEFT JOIN ({$groupsinnerselect}) {$groups}
+                       ON {$groups}.id = {$attendancesessionalias}.groupid AND {$groups}.userid = {$useralias}.id")
+        );
 
         $this->add_all_from_entities();
     }
